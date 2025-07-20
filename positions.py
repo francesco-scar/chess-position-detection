@@ -4,7 +4,7 @@ from json import load as jsonLoad
 import numpy as np
 import math
 
-dir = "./dataset/train/"
+dir = "./dataset/data/"
 
 ### import matplotlib.pyplot as plt
 ### from PIL import Image
@@ -17,7 +17,7 @@ def calc_position(box, transform, side):
     # From the bounding box we take one point to use as the position on the board
     proj_pos = {
         "x": box[0] + box[2] / 2, # centered horizontally
-        "y": box[1] + box[3] * 0.9 # just above the bottom vertically
+        "y": box[1] + box[3] * 0.8 # just above the bottom vertically
     }
 
     ### axs[0].scatter(proj_pos["x"], proj_pos["y"], s=10)
@@ -40,28 +40,30 @@ def calc_position(box, transform, side):
     ### axs[1].scatter(pos["x"], pos["y"], s=10)
 
     # Error check: exclude pieces not on the board
-    if square_pos["x"] < 0 or square_pos["x"] > 7 or square_pos["y"] < 0 or square_pos["y"] > 7:
-        return "ERROR: out of the board!"
+    #if square_pos["x"] < 0 or square_pos["x"] > 7 or square_pos["y"] < 0 or square_pos["y"] > 7:
+    #    return "ERROR: out of the board!"
+    # Clamp the position to the nearest square on the board
+    square_pos["x"] = min(max(square_pos["x"], 0), 7)
+    square_pos["y"] = min(max(square_pos["y"], 0), 7)
 
     # Translate in chess notation (rotating values based on side)
     letters = ["a", "b", "c", "d", "e", "f", "g", "h"]
-    match side:
-        case 0:
-            # 01 11 -> A2 B2
-            # 00 10 -> A1 B1
-            return letters[square_pos["x"]]+str(square_pos["y"]+1)
-        case 1:
-            # 01 11 -> B2 B1
-            # 00 10 -> A2 A1
-            return letters[square_pos["y"]]+str(8-square_pos["x"])
-        case 2:
-            # 01 11 -> B1 A1
-            # 00 10 -> B2 A2
-            return letters[7-square_pos["x"]]+str(8-square_pos["y"])
-        case 3:
-            # 01 11 -> A1 A2
-            # 00 10 -> B1 B2
-            return letters[7-square_pos["y"]]+str(square_pos["x"]+1)
+    if side == 0:
+        # 01 11 -> A2 B2
+        # 00 10 -> A1 B1
+        return letters[square_pos["x"]]+str(square_pos["y"]+1)
+    elif side == 1:
+        # 01 11 -> B2 B1
+        # 00 10 -> A2 A1
+        return letters[square_pos["y"]]+str(8-square_pos["x"])
+    elif side == 2:
+        # 01 11 -> B1 A1
+        # 00 10 -> B2 A2
+        return letters[7-square_pos["x"]]+str(8-square_pos["y"])
+    elif side == 3:
+        # 01 11 -> A1 A2
+        # 00 10 -> B1 B2
+        return letters[7-square_pos["y"]]+str(square_pos["x"]+1)
 
 
 # Function to compute the projection matrix needed to convert the points from the image space to the board space
@@ -123,45 +125,46 @@ def calc_transform(corners):
     return C
 
 
-# Test code
-total = 0
-ok = 0
-for file in listdir(path=dir):
-    if isfile(dir+file) and file.endswith(".json"):
-        with open(dir+file) as f:
-            content = jsonLoad(f)
-            side = 0 if content["white_turn"] else 2
+def test():
+    # Test code
+    total = 0
+    ok = 0
+    for file in listdir(path=dir):
+        if isfile(dir+file) and file.endswith(".json"):
+            with open(dir+file) as f:
+                content = jsonLoad(f)
+                side = 0 if content["white_turn"] else 2
 
-            ### img = Image.open(dir+file.replace(".json", ".png"))
-            ### axs[0].imshow(img)
-            ### x, y = zip(*content["corners"])
-            ### axs[0].plot(x + (x[0],), y + (y[0],), color='cyan', linewidth=1)  # connect corners in order and close the box
+                ### img = Image.open(dir+file.replace(".json", ".png"))
+                ### axs[0].imshow(img)
+                ### x, y = zip(*content["corners"])
+                ### axs[0].plot(x + (x[0],), y + (y[0],), color='cyan', linewidth=1)  # connect corners in order and close the box
 
-            ### for i in range(1,8):
-            ###     axs[1].plot([i/8, i/8], [0, 1], color='red', linewidth=0.5)
-            ###     axs[1].plot([0, 1], [i/8, i/8], color='red', linewidth=0.5)
-            ### axs[1].plot([0, 0, 1, 1, 0], [0, 1, 1, 0, 0], color='cyan', linewidth=1)
+                ### for i in range(1,8):
+                ###     axs[1].plot([i/8, i/8], [0, 1], color='red', linewidth=0.5)
+                ###     axs[1].plot([0, 1], [i/8, i/8], color='red', linewidth=0.5)
+                ### axs[1].plot([0, 0, 1, 1, 0], [0, 1, 1, 0, 0], color='cyan', linewidth=1)
 
-            # The transform depends only on the board, so we can avoid re-computing it for every piece
-            transform = calc_transform(content["corners"])
-            
-            for piece in content["pieces"]:
-                ### rect = plt.Rectangle((piece["box"][0], piece["box"][1]), piece["box"][2], piece["box"][3],
-                ###                     linewidth=1, edgecolor='lime', facecolor='none')
-                ### axs[0].add_patch(rect)
-
-                position = calc_position(piece["box"], transform, side)
+                # The transform depends only on the board, so we can avoid re-computing it for every piece
+                transform = calc_transform(content["corners"])
                 
-                total += 1
-                if position == piece["square"]:
-                    ok += 1
-                else:
-                    print(f"Error: expected {piece['square']}, got {position} in file {file}")
-            
-            ### axs[1].set_aspect('equal', adjustable='box')
-            ### plt.show()
-            ### fig, axs = plt.subplots(2)
+                for piece in content["pieces"]:
+                    ### rect = plt.Rectangle((piece["box"][0], piece["box"][1]), piece["box"][2], piece["box"][3],
+                    ###                     linewidth=1, edgecolor='lime', facecolor='none')
+                    ### axs[0].add_patch(rect)
+
+                    position = calc_position(piece["box"], transform, side)
+                    
+                    total += 1
+                    if position == piece["square"]:
+                        ok += 1
+                    else:
+                        print(f"Error: expected {piece['square']}, got {position} in file {file}")
+                
+                ### axs[1].set_aspect('equal', adjustable='box')
+                ### plt.show()
+                ### fig, axs = plt.subplots(2)
 
 
-print(f"{ok}/{total} ({total-ok} errors): {round(100*ok/total, 2)}%")
+    print(f"{ok}/{total} ({total-ok} errors): {round(100*ok/total, 2)}%")
             
