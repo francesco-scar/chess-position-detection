@@ -11,6 +11,34 @@ dir = "./dataset/data/"
 
 ### fig, axs = plt.subplots(2)
 
+# Given a list of pieces in the format
+# [{'piece': 'b', 'square': 'g1}, ...],
+def pieces_to_fen(pieces):
+    fen = ''
+    board = [['.' for _ in range(8)] for _ in range(8)]
+    
+    for piece in pieces:
+        square = piece['square']
+        row = 8 - int(square[1])
+        col = ord(square[0]) - ord('a')
+        board[row][col] = piece['piece']
+    
+    for row in board:
+        empty_count = 0
+        for cell in row:
+            if cell == '.':
+                empty_count += 1
+            else:
+                if empty_count > 0:
+                    fen += str(empty_count)
+                    empty_count = 0
+                fen += cell
+        if empty_count > 0:
+            fen += str(empty_count)
+        fen += '/'
+    
+    return fen[:-1]  # Remove the last '/'
+
 # Function to compute a piece's position from its bounding box and the board projection transform obtained with calc_transform()
 def calc_position(box, transform, side):
 
