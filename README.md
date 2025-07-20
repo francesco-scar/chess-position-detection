@@ -144,6 +144,43 @@ dataset/
 - Performance visualizations
 - Debug images showing detection results
 
+### 6. Inference Demo (`06_inference.ipynb`)
+
+**Purpose**: Demonstrates real-time inference using the trained models on new chess board images.
+
+**What it does**:
+- Loads the best performing piece detection and board segmentation models
+- Performs inference on a single test image
+- Detects chess pieces and board corners
+- Calculates piece positions using board transformation
+- Converts detected pieces to FEN notation
+- Visualizes results with bounding boxes and labels overlaid on the image
+
+**Output**:
+- Predicted FEN notation
+- Annotated image showing detected pieces and their positions
+- Visual confirmation of detection accuracy
+
+## Long-Running Process Management
+
+The training (notebook 02) and comparison (notebook 03) steps can take several hours or days to complete, especially when training multiple model variants with cross-validation. For unattended execution, you can convert the notebooks to Python scripts and run them with `nohup`:
+
+```bash
+# Convert notebooks to Python scripts
+jupyter nbconvert --to script 02_cross_validation_training.ipynb
+jupyter nbconvert --to script 03_compare.ipynb
+
+# Run with nohup for background execution
+nohup python 02_cross_validation_training.py > training.log 2>&1 &
+nohup python 03_compare.py > comparison.log 2>&1 &
+
+# Monitor progress
+tail -f training.log
+tail -f comparison.log
+```
+
+This allows the training and evaluation to continue running even if you disconnect from the server or close your terminal session.
+
 ## Key Files
 
 - `positions.py`: Core utilities for board transformation and position calculation
